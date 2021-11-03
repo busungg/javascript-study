@@ -55,3 +55,104 @@ argumentTest(1);
   console.log(factorial(10));
   console.dir(factorial);
 })();
+
+/**
+ * ---------------------------------------------------
+ * 함수형 프로그래밍
+ * Q: 함수형 프로그래밍을 사용해보자
+ * A:
+ * ---------------------------------------------------
+ */
+(function () {
+  function compose(f, g) {
+    return function () {
+      //f는 하나의 값만 넘기기 때문에 call을 사용하고
+      //g에는 값 배열을 넘겨야 하기 때문에 apply를 사용한다.
+      return f.call(null, g.apply(null, arguments));
+    };
+  }
+
+  var square = function (x) {
+    return x * x;
+  };
+  var sum = function (x, y) {
+    return x + y;
+  };
+  var squareofsum = compose(square, sum);
+  console.log(squareofsum);
+
+  console.log(squareofsum(2, 3));
+})();
+
+(function () {
+  function array(a, n) {
+    //메서드가 this 값을 사용하면 매개변수로 전달한 this를 사용한다고 생각한다.
+    return Array.prototype.slice.call(a, n || 0);
+  }
+
+  //array 테스트
+  function arrayTest() {
+    return array(arguments, 1);
+  }
+
+  console.log(arrayTest(1, 2, 3, 4, 5));
+
+  //이 함수에 전달된 인자는 대상 함수의 인자 목록에 대해 왼쪽으로 전달된다.
+  function partialLeft(f /*,...*/) {
+    var args = arguments; //외부 인자 배열을 저장한다.
+    return function () {
+      /**
+       * 제일 중요한점
+       * 내부 function의 arguments랑 외부 function의 arguments의 내용은 다르다.
+       * 그 이유는 호출 시점이 다르기 때문이다.
+       */
+
+      //함수를 반환
+      var a = array(args, 1); //외부 인자의 1번 인덱스부터 시작(0번은 함수 f)
+      a = a.concat(array(arguments)); //이후, 이 내부 함수로 전달된 모든 인자를 추가
+      return f.apply(this, a); //그 다음, 지금까지 만든 인자 목록으로 f를 호출
+    };
+  }
+
+  //이 함수에 전달된 인자는 대상 함수의 인자 목록에 대해 오른쪽으로 전달된다.
+  function partialRight(f) {
+    var args = arguments;
+    return function () {
+      var a = array(arguments); //먼저 내부 함수에 전달된 인자로 시작
+      a = a.concat(array(args, 1)); //외부 인자의 1번 인덱스부터 나머지를 추가
+      return f.apply(this, a); //이후, 지금까지 만든 인자 목록으로 f를 호출
+    };
+  }
+
+  //이 함수에 전달된 인자는 템플릿으로 사용된다. 인자목록에서
+  //정의되지 않은(undefined)값은 내부 함수에 전달된 인자의 값으로 채워진다.
+  function partial(f /*,...*/) {
+    var args = arguments; //외부 인자 배열을 저장한다.
+    return function () {
+      var a = array(args, 1); //외부 인자의 1번 인덱스로부터 시작한다.
+      var i = 0,
+        j = 0;
+
+      //args에 대해 루프를 돌며, undefined 값을 만나면
+      //내부 함수에 전달된 인자 값으로 설정한다.
+      for (; i < a.length; i++) {
+        if (a[i] === undefined) {
+          a[i] = arguments[j++];
+        }
+      }
+      //이제 남은 내부 인자 값들을 추가한다.
+      a = a.concat(array(arguments, j));
+      return f.apply(this, a);
+    };
+  }
+
+  //세 인자를 전달하는 함수
+  var f = function (x, y, z) {
+    return x * (y - z);
+  };
+
+  //이 세 파셜 애플리케이션이 서로 어떻게 다른지 살펴보라
+  console.log(partialLeft(f, 2)(3, 4)); // => -2 첫 번째 인자로 바인딩 함 2 * (3-4)
+  console.log(partialRight(f, 2)(3, 4)); // => 6 마지막 인자로 바인딩 함 3 * (4-2)
+  console.log(partial(f, undefined, 2)(3, 4)); //=> -6 가운데 인자로 바인딩 함 3 * (2-4)
+})();
