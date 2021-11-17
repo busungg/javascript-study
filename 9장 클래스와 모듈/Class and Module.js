@@ -123,3 +123,44 @@
 
   Set._v2s.next = 100; // 객체 id 시작 값으로 100을 할당한다.
 })();
+
+/**
+ * ---------------------------------------------------
+ * Enum 클래스
+ * Q: Enum 클래스를 만들어 보자
+ * A:
+ * ---------------------------------------------------
+ */
+(function () {
+  //이 함수는 새 열거형을 생성한다. 인자 객체는 열거형의 각 인스턴스에 대한 이름과 값을 지정한다.
+  //이 함수의 반환 값은 새 클래스를 구별하는 생성자 함수다.
+  //그러나 생성자를 직접 사용하면 예외가 발생한다는 것을 유념하라.
+  //열거형의 새 인스턴스를 생성하는 데 직접 생성자 함수를 사용할 수는 없다.
+  //반환된 생성자의 프로퍼티에는 생성자 그 자체를 가리키는 이름과 값 배열,
+  //그리고 foreach() 열거함수가 있다.
+  function enumeration(namesToValues) {
+    //이것은 더미 생성자 함수이고, 이 함수가 반환 값이 된다.
+    //이 변수는 로컬 변수로서 전역 enumeration 변수의 값을 가리게된다.
+    var enumeration = function () {
+      throw "열거형은 인스턴스화할 수 없습니다.";
+    };
+
+    //열거 값은 이 proto객체를 상속한다.
+    //가장 중요한 부분이다.
+    //function, object가 가진 표준 변환 메서드와 동일한 이름을 가진 프로퍼티를
+    //설정하여 override 시킨 것이다. 그렇기 때문에 Value를 쓰지 않아도
+    //자동으로 valueOf나 toString을 사용하여 값을 가져올 수 있다.
+    var proto = (enumeration.prototype = {
+      constructor: enumeration,
+      toString: function () {
+        return this.name;
+      }, //name을 반환한다.
+      valueOf: function () {
+        return this.value;
+      }, //value를 반환한다.
+      toJSON: function () {
+        return this.name;
+      }, //직렬화를 위한 기능
+    });
+  }
+})();
