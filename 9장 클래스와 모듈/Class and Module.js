@@ -164,3 +164,74 @@
     });
   }
 })();
+
+/**
+ * ---------------------------------------------------
+ * ECMAScript5 Enum 클래스
+ * Q: ECMAScript5의 Object.defineProperty 메서드를 사용해서 Enum 클래스를 만들어 보자
+ * A:
+ * ---------------------------------------------------
+ */
+(function () {
+  //모든 객체가 상속하는 objectId 프로퍼티를 정의하지만, 이 프로퍼티는 열거되지 않는다.
+  //이 프로퍼티가 읽힐 때 getter 함수가 호출되는데 setter 함수는 없기 때문에
+  //이 프로퍼티는 읽기 전용이다.
+  //또한 프로퍼티 속성을 설정(configurable)할 수 없기 때문에,
+  //이 프로퍼티는 임의로 삭제될 수 없다.
+  Object.defineProperty(Object.prototype, "objectId", {
+    get: idGetter, //값을 얻기 위한 메서드.
+    enumerable: false, //열거되지 않음
+    configurable: false, //삭제할 수 없음
+  });
+
+  //이 함수는 objectId가 읽힐 때 호출되는 getter 함수다.
+  function idGetter() {
+    if (!(idprop in this)) {
+      //만약 객체에 id가 없고
+      if (!Object.isExtensible(this)) {
+        //만약 객체를 확장할 수 없다면
+        throw Error("Can't define id for nonextensible objects");
+      }
+
+      Object.defineProperty(this, idprop, {
+        //idprop을 생성한다.
+        value: nextid++, //idprop의 값
+        writable: false, //읽기 전용을 나타냄
+        enumerable: false, //열거되지 않음
+        configurable: false, //프로퍼티를 삭제할 수 없음
+      });
+    }
+
+    return this[idprop]; //기존 프로퍼티 값이나 새로 만든 프로퍼티 값을 반환한다.
+  }
+
+  //다음 변수들은 idGetter()에서 사용되고 이 함수에서만 유효하다.
+  var idprop = "|**objectId**|"; //이런 프로퍼티 이름은 사용되지 않는다고 가정한다.
+  var nextid = 1; //시작 id 값을 지정
+
+  //테스트
+  function A() {}
+  function B() {}
+
+  var _a = new A();
+  var _b = new B();
+  var _c = new A();
+
+  /*
+  console.log(_a.objectId); //1
+  console.log(_b.objectId); //2
+  console.log(_c.objectId); //3
+  */
+
+  console.log(_c.objectId); //1
+  console.log(_b.objectId); //2
+  console.log(_a.objectId); //3
+
+  try {
+    _c.objectId = 100;
+    console.log(_c.objectId); // getter 밖에 없기 때문에 set이 안됨
+    console.log(_c["|**objectId**|"]); //실제로는 idGetter 내에서 기존 property 호출한 케이스
+  } catch (e) {
+    console.log(e);
+  }
+})();
