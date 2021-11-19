@@ -235,3 +235,66 @@
     console.log(e);
   }
 })();
+
+/**
+ * ---------------------------------------------------
+ * ECMAScript5 클래스 확장 막기
+ * Q: ECMAScript5의 Object.seal, freeze 메서드를 사용해서 클래스의 확장을 막자
+ *  : 클래스대로만 사용하게 한다.
+ * A:
+ * ---------------------------------------------------
+ */
+(function () {
+  function Compare(n) {
+    this.n = n;
+    //Object.seal(this);
+  }
+
+  Compare.prototype.upper0 = function () {
+    if (this.x > 0) {
+      return true;
+    }
+
+    return false;
+  };
+
+  //Compare를 seal한다.
+  Object.seal(Compare);
+  Object.seal(Compare.prototype);
+
+  Compare.prototype.upper1 = 3;
+  var c = new Compare(5);
+  c.y = 100;
+
+  console.dir(c);
+  console.dir(Compare.prototype);
+
+  function CompareInherit(n) {
+    Compare.call(this, n);
+  }
+
+  CompareInherit.prototype = Object.assign({}, Compare.prototype);
+  CompareInherit.prototype.constructor = CompareInherit;
+
+  //상속받은 프로퍼티 객체는 재정의 할 수 있는지 확인
+  CompareInherit.prototype.upper0 = function () {
+    if (this.x > 1) {
+      return true;
+    }
+
+    return false;
+  };
+
+  //상속받은 프로퍼티 객체에 메서드 추가 할 수 있는지 확인
+  CompareInherit.prototype.upper1 = function () {
+    if (this.x > 2) {
+      return true;
+    }
+
+    return false;
+  };
+
+  var c1 = new CompareInherit(10);
+  console.dir(c1);
+  console.dir(CompareInherit.prototype);
+})();
