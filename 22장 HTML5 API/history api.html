@@ -1,0 +1,187 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta http-equiv="X-UA-Compatible" content="IE=edge">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>나는 어떤 숫자를 생각하고 있다...</title>
+    <style>
+        #prompt {
+            font-size: 16pt;
+        }
+
+        table {
+            width: 90%;
+            margin: 10px;
+            margin-left: 5%;
+        }
+
+        #low,
+        #high {
+            background-color: lightgray;
+            height: 1em;
+        }
+
+        #mid {
+            background-color: green;
+        }
+    </style>
+</head>
+
+<body>
+    <h1 id="heading">나는 숫자 ...를 생각하고 있다.</h1>
+    <table>
+        <tr>
+            <td id="low"></td>
+            <td id="mid"></td>
+            <td id="high"></td>
+        </tr>
+    </table>
+    <label id="prompt"></label>
+    <input id="input" type="text">
+
+    <script>
+        window.onload = newgame; //페이지가 로드되면, 새 게임을 시작한다.
+        window.onpopstate = popState; //히스토리 이벤트를 처리한다.
+        var state, ui;
+
+        function newgame(playagain) {
+            //사용할 문서 요소를 저장할 객체를 선언한다.
+            ui = {
+                heading: null,
+                prompt: null,
+                input: null,
+                low: null,
+                mid: null,
+                high: null
+            };
+
+            for (var id in ui) {
+                ui[id] = document.getElementById(id);
+            }
+
+            ui.input.onchange = handleGuess;
+
+            state = {
+                n: Math.floor(99 * Math.random()) + 1, //정수 0 < n < 100
+                low: 0,
+                high: 100,
+                guessnum: 0, //추측할 수 있는 횟수
+                guess: undefined //이전 추측 값
+            };
+
+            //현재의 초기 상태를 출력하기 위해 문서 내용을 수정한다.
+            display(state);
+
+            //이 함수는 onload 이벤트 핸들러로써 호출되며,
+            //게임이 끝났을 때 출력되는 '다시하기' 버튼에 의해서도 호출된다.
+            //pushState()를 지원하는 브라우저에서, load 이벤트는 항상 popstate 이벤트에 이어서 발생한다.
+            //이때 상태 객체를 얻었다면, 해당 객체를 사용하면 된다.
+            //그렇지 않고 popstate가 null 상태일 경우에는 정말로 새 게임인 것이며,
+            //새 게임 상태를 저장하기 위해 replaceState를 사용한다.
+
+            if (playagain === true) {
+                save(state);
+            }
+        }
+
+        function save(state) {
+            if (!history.pushState) return;
+
+            //저장된 상태와 URL을 조합할 것이다. 이 URL은 추측한 숫자를 나타낸다.
+            //그러나 게임의 상태는 인코딩하지 않으므로, 즐겨찾기로 활용하기에는 적합하지 않다.
+            //URL에 게임 상태를 조합하는 것은 주소표시줄에
+            //비밀 숫자가 표시될 수도 있기 때문에 쉬운 작업이 아니다.
+            var url = '#guess' + state.guessnum;
+            //이제 , 상태 객체와 URL을 저장한다.
+            history.pushState(state, //지징힐 상태 객체
+                '', //상태의 제목, 최신 브라우저에서 이 값은 무시된다.
+                url //상태 URL: 즐겨찾기로 사용하기에 적합하지는 않다.
+            );
+
+            console.log('save', state, url);
+        }
+
+        //이 함수는 연대적인 상태를 복원하는 onpopstate 이벤트 핸들러다.
+        function popState(event) {
+            console.log(event);
+
+            if (event.state) { //event 객체에 state 프로퍼티가 존재한다면, 해당 상태를 복원한다.
+                //event.state는 저장된 상태 객체의 복사본인 것에 주의하자.
+                //그러므로, 저장된 값의 변경 없이 객체를 수정할 수 있다.
+                state = event.state; //히스토리의 상태를 가져온다.
+                display(state); //가져온 상태를 보여준다.
+
+                console.log('popState', state);
+            } else {
+                //처음 페이지를 로드하면, 상태 정보가 없는 상태로 popstate 이벤트를 처리할 것이다.
+                //null인 상태의 값을 실제 상태로 교체한다. newgame()의 주석을 참고하자.
+                //여기서는 display() 함수롤 호출할 필요가 없다.
+                history.replaceState(state,
+                    '',
+                    '#guess' + state.guessnum);
+            }
+        }
+
+        //이 이벤트 핸들러는 사용자가 숫자를 추측할 때마다 호출된다.
+        //이 함수는 게임의 상태를 수정, 저장, 출력한다.
+        function handleGuess() {
+            //입력 필드로부터 사용자의 추측 값을 가져온다.
+            var g = parseInt(this.value);
+
+            //해당 값이 숫자이며 올바른 범위 내에 있을 때
+            if ((g > state.low) && (g < state.high)) {
+                //이 추측 값을 기반으로 state 객체를 업데이트 한다.
+                if (g < state.n) {
+                    state.low = g;
+                } else if (g > state.n) {
+                    state.high = g;
+                }
+                state.guess = g;
+                state.guessnum++;
+
+                //이제 브라우저의 히스토리에 새 상태를 저장한다.
+                save(state);
+
+                //HTML 문서를 수정하여 사용자의 추측에 대한 응답을 출력한다.
+                display(state);
+            } else {
+                //올바르지 않은 추측 값이다. 히스토리에 새로운 상태를 추가하지 않는다.
+                alert(state.low + '보다 크고 ' + state.high + '보다 작은 값을 입력하십시오.');
+            }
+        }
+
+        //게임의 현재 상태를 출력하기 위해 HTML 문서를 수정한다.
+        function display(state) {
+            //문서의 제목과 머리말을 출력한다.
+            ui.heading.innerHTML = document.title = '나는 ' + state.low + '와 ' + state.high + ' 사이의 값을 생각하고 있다.';
+
+            //테이블을 사용하여 숫자의 범위를 시각적으로 출력한다.
+            ui.low.style.width = state.low + '%';
+            ui.mid.style.width = (state.high - state.low) + '%';
+            ui.high.style.width = (100 - state.high) + '%';
+
+            //입력 필드를 보이도록 표시하고 값을 비워둔 다음 포커스를 부여한다.
+            ui.input.style.visibility = 'visible';
+            ui.input.value = '';
+            ui.input.focus();
+
+            //사용자의 최근 추측 값을 기반으로 안내 문구를 설정한다.
+            if (state.guess === undefined) {
+                ui.prompt.innerHTML = '추측 값을 입력한 다음 Enter 키를 누르세요. : ';
+            } else if (state.guess < state.n) {
+                ui.prompt.innerHTML = state.guess + '는 너무 작습니다. 다시 생각해보세요. : ';
+            } else if (state.guess > state.n) {
+                ui.prompt.innerHTML = state.guess + '는 너무 큽니다. 다시 생각해보세요. : ';
+            } else {
+                //추측 값을 맞췄다면, 입력 핅드를 숨기고 '다시하기' 버튼을 보여준다.
+                ui.input.style.visibility = 'hidden';
+                ui.heading.innerHTML = document.title = state.guess + '는 정답입니다! ';
+                ui.prompt.innerHTML = '당신이 이겼습니다! <button onclick="newgame(true)">다시하기</button>';
+            }
+        }
+    </script>
+</body>
+
+</html>
