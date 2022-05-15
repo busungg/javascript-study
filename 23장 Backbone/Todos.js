@@ -1,7 +1,7 @@
 import { Backbone } from "backbone";
 import Todo from './Todo';
 
-export default class TodoList extends Backbone.Collection {
+export default class Todos extends Backbone.Collection {
     constructor() {
         this.model = Todo;
         this.localStorage = new Backbone.LocalStorage('todos-backbone');
